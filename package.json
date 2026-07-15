@@ -17,7 +17,7 @@
     "commands": [
       {
         "command": "extension.readNotebookCell",
-        "title": "▶ Read Cell",
+        "title": "Read/Stop Cell",
         "icon": "$(unmute)"
       }
     ],
@@ -25,7 +25,7 @@
       "notebook/cell/title": [
         {
           "command": "extension.readNotebookCell",
-          "group": "navigation",
+          "group": "inline@1",
           "when": "notebookCellType == 'code' || notebookCellType == 'markup'"
         }
       ]
