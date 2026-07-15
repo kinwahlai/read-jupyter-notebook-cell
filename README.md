@@ -41,7 +41,18 @@ cd read-jupyter-notebook-cell
 pnpm install
 ```
 
-Then open the folder in VS Code and press `F5` to launch an Extension Development Host with the extension loaded.
+Then either:
+
+- Press `F5` to launch an Extension Development Host with the extension loaded, or
+- Install it into your regular VS Code as a `.vsix`:
+
+  ```bash
+  pnpm add -D @vscode/vsce
+  pnpm exec vsce package
+  code --install-extension read-jupyter-notebook-cell-0.0.1.vsix
+  ```
+
+  Then reload the window (`Cmd/Ctrl+Shift+P` → "Reload Window") to activate it.
 
 ## License
 
