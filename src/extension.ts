@@ -3,12 +3,14 @@ import { spawn, ChildProcess } from 'child_process';
 
 let currentAudioProcess: ChildProcess | null = null;
 
-// Strip content that isn't meaningful to speak aloud: fenced code blocks
-// and markdown images.
+// Strip content that isn't meaningful to speak aloud: fenced code blocks,
+// markdown images, link URLs (keep only the link text), and bare URLs.
 function stripUnspeakable(text: string): string {
     return text
         .replace(/```[\s\S]*?```/g, '')
-        .replace(/!\[[^\]]*\]\([^)]*\)/g, '');
+        .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+        .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+        .replace(/https?:\/\/\S+/g, '');
 }
 
 // Spawn the OS TTS process directly (no shell) and feed text over stdin,
