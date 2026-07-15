@@ -30,6 +30,7 @@ Built for anyone who has a hard time focusing on long blocks of text on screen, 
 - Linux requires `espeak` to be installed separately; it isn't bundled with the extension.
 - No controls yet for voice, speed, or language — playback uses the OS default voice.
 - Only one cell can read at a time; starting a new read stops the previous one.
+- ~2 second delay before the first word is spoken — each click cold-starts a new OS TTS process.
 
 ## Installation
 
