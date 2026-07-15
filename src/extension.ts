@@ -3,6 +3,24 @@ import { exec } from 'child_process';
 
 let currentAudioProcess: any = null;
 
+// Helper function to detect OS and generate the correct command
+function getTtsCommand(text: string): string {
+    if (process.platform === 'darwin') {
+        // macOS: use 'say'
+        const safeText = text.replace(/"/g, '\\"');
+        return `say "${safeText}"`;
+    } else if (process.platform === 'win32') {
+        // Windows: use PowerShell and the System.Speech API
+        // We escape single quotes by doubling them ('') for PowerShell
+        const safeText = text.replace(/'/g, "''");
+        return `powershell -Command "Add-Type -AssemblyName System.Speech; (New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('${safeText}')"`;
+    } else {
+        // Linux: default to 'espeak' (requires espeak to be installed)
+        const safeText = text.replace(/"/g, '\\"');
+        return `espeak "${safeText}"`;
+    }
+}
+
 class SpeakCellCodeLensProvider implements vscode.CodeLensProvider {
     provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] {
         const range = new vscode.Range(0, 0, 0, 0);
@@ -26,7 +44,6 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('extension.readNotebookCell', (...args) => {
             
-            // TOGGLE LOGIC: If audio is currently playing, stop it and exit the function.
             if (currentAudioProcess) {
                 currentAudioProcess.kill();
                 currentAudioProcess = null;
@@ -48,10 +65,10 @@ export function activate(context: vscode.ExtensionContext) {
 
             if (!textToRead || !textToRead.trim()) { return; }
 
-            const safeText = textToRead.replace(/"/g, '\\"');
-            currentAudioProcess = exec(`say "${safeText}"`);
+            // Get the correct command for Mac or Windows
+            const commandToRun = getTtsCommand(textToRead);
+            currentAudioProcess = exec(commandToRun);
 
-            // RESET LOGIC: Clear the variable when the audio finishes naturally
             currentAudioProcess.on('exit', () => {
                 currentAudioProcess = null;
             });
