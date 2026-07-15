@@ -1,8 +1,16 @@
 {
   "name": "read-jupyter-notebook-cell",
   "displayName": "Read Jupyter Notebook Cell",
-  "description": "",
+  "description": "Reads Jupyter notebook cells aloud using your OS's text-to-speech engine.",
   "version": "0.0.1",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kinwahlai/read-jupyter-notebook-cell.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kinwahlai/read-jupyter-notebook-cell/issues"
+  },
   "engines": {
     "vscode": "^1.125.0"
   },
