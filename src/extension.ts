@@ -1,24 +1,38 @@
 import * as vscode from 'vscode';
-import { exec } from 'child_process';
+import { spawn, ChildProcess } from 'child_process';
 
-let currentAudioProcess: any = null;
+let currentAudioProcess: ChildProcess | null = null;
 
-// Helper function to detect OS and generate the correct command
-function getTtsCommand(text: string): string {
+// Strip content that isn't meaningful to speak aloud: fenced code blocks
+// and markdown images.
+function stripUnspeakable(text: string): string {
+    return text
+        .replace(/```[\s\S]*?```/g, '')
+        .replace(/!\[[^\]]*\]\([^)]*\)/g, '');
+}
+
+// Spawn the OS TTS process directly (no shell) and feed text over stdin,
+// so long text or shell-special characters (`, $, !, newlines...) never
+// have to survive a shell command line.
+function speak(text: string): ChildProcess {
+    let proc: ChildProcess;
     if (process.platform === 'darwin') {
-        // macOS: use 'say'
-        const safeText = text.replace(/"/g, '\\"');
-        return `say "${safeText}"`;
+        proc = spawn('say');
     } else if (process.platform === 'win32') {
-        // Windows: use PowerShell and the System.Speech API
-        // We escape single quotes by doubling them ('') for PowerShell
-        const safeText = text.replace(/'/g, "''");
-        return `powershell -Command "Add-Type -AssemblyName System.Speech; (New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('${safeText}')"`;
+        proc = spawn('powershell', [
+            '-NoProfile',
+            '-Command',
+            'Add-Type -AssemblyName System.Speech; ' +
+            '$text = [Console]::In.ReadToEnd(); ' +
+            '(New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak($text)'
+        ]);
     } else {
-        // Linux: default to 'espeak' (requires espeak to be installed)
-        const safeText = text.replace(/"/g, '\\"');
-        return `espeak "${safeText}"`;
+        // Linux: requires espeak to be installed
+        proc = spawn('espeak');
     }
+    proc.stdin?.write(text);
+    proc.stdin?.end();
+    return proc;
 }
 
 class SpeakCellCodeLensProvider implements vscode.CodeLensProvider {
@@ -63,11 +77,16 @@ export function activate(context: vscode.ExtensionContext) {
                 textToRead = arg.cell.document.getText();
             }
 
+            textToRead = stripUnspeakable(textToRead);
+
             if (!textToRead || !textToRead.trim()) { return; }
 
-            // Get the correct command for Mac or Windows
-            const commandToRun = getTtsCommand(textToRead);
-            currentAudioProcess = exec(commandToRun);
+            currentAudioProcess = speak(textToRead);
+
+            currentAudioProcess.on('error', (err) => {
+                vscode.window.showErrorMessage(`Read Cell: failed to start TTS process: ${err.message}`);
+                currentAudioProcess = null;
+            });
 
             currentAudioProcess.on('exit', () => {
                 currentAudioProcess = null;
