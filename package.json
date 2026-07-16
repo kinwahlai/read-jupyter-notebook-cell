@@ -2,7 +2,7 @@
   "name": "read-jupyter-notebook-cell",
   "displayName": "Read Jupyter Notebook Cell",
   "description": "Reads Jupyter notebook cells aloud using your OS's text-to-speech engine.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -37,6 +37,23 @@
           "when": "notebookCellType == 'code' || notebookCellType == 'markup'"
         }
       ]
+    },
+    "configuration": {
+      "title": "Read Jupyter Notebook Cell",
+      "properties": {
+        "readJupyterNotebookCell.voice": {
+          "type": "string",
+          "default": "",
+          "description": "Exact TTS voice name (see your OS voice list, e.g. `say -v '?'` on macOS). Empty = system default voice."
+        },
+        "readJupyterNotebookCell.rate": {
+          "type": "number",
+          "default": 1,
+          "minimum": 0.5,
+          "maximum": 2,
+          "description": "Speech rate multiplier."
+        }
+      }
     }
   },
   "scripts": {

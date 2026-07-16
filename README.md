@@ -10,14 +10,25 @@ Built for anyone who has a hard time focusing on long blocks of text on screen, 
 - **CodeLens shortcut** above each cell as an alternative trigger.
 - **Toggle playback** — starting a new read stops whatever is currently playing.
 - **Cross-platform TTS**, using each OS's native voice:
-  - macOS: `say`
-  - Windows: PowerShell `System.Speech`
+  - macOS: `NSSpeechSynthesizer` (same voices as `say`), driven via a persistent helper process
+  - Windows: PowerShell `System.Speech`, driven via a persistent helper process
   - Linux: `espeak`
+
+On macOS and Windows, the extension keeps one speech engine warm in the background
+(started on activation) instead of spawning a fresh process per click, so reads after
+the first are near-instant.
 
 ## Requirements
 
 - macOS and Windows: no setup needed, uses the built-in OS TTS.
 - Linux: requires `espeak` to be installed separately, e.g. `sudo apt install espeak`.
+
+## Settings
+
+- `readJupyterNotebookCell.voice` — exact TTS voice name to use. Empty (default) uses
+  the OS default voice. Find available names with `say -v '?'` on macOS, or by
+  listing installed voices in Windows Settings.
+- `readJupyterNotebookCell.rate` — speech rate multiplier, `0.5`–`2` (default `1`).
 
 ## Usage
 
@@ -28,9 +39,12 @@ Built for anyone who has a hard time focusing on long blocks of text on screen, 
 ## Known Issues
 
 - Linux requires `espeak` to be installed separately; it isn't bundled with the extension.
-- No controls yet for voice, speed, or language — playback uses the OS default voice.
+- No language control — playback uses the OS default voice's language.
 - Only one cell can read at a time; starting a new read stops the previous one.
-- ~2 second delay before the first word is spoken — each click cold-starts a new OS TTS process.
+- Linux still spawns a fresh `espeak` process per click (lightweight, no noticeable delay);
+  macOS/Windows use a warm persistent process instead.
+- Only tested on macOS so far. The Windows (`media/tts-win.ps1`) and Linux (`espeak`)
+  paths are implemented but unverified — please report issues if you try them.
 
 ## Installation
 
@@ -50,7 +64,7 @@ Then either:
   ```bash
   pnpm add -D @vscode/vsce
   pnpm exec vsce package
-  code --install-extension read-jupyter-notebook-cell-0.0.1.vsix
+  code --install-extension read-jupyter-notebook-cell-0.0.2.vsix
   ```
 
   Then reload the window (`Cmd/Ctrl+Shift+P` → "Reload Window") to activate it.
