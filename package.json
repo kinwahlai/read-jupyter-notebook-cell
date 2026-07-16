@@ -3,6 +3,7 @@
   "displayName": "Read Jupyter Notebook Cell",
   "description": "Reads Jupyter notebook cells aloud using your OS's text-to-speech engine.",
   "version": "0.0.3",
+  "publisher": "ElevatesLife",
   "license": "MIT",
   "repository": {
     "type": "git",
