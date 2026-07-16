@@ -15,11 +15,10 @@
 
 ObjC.import('Foundation');
 ObjC.import('AppKit');
-ObjC.bindFunction('fcntl', ['int', ['int', 'int', 'int']]);
-
-const F_GETFL = 3, F_SETFL = 4, O_NONBLOCK = 0x0004;
-const flags = $.fcntl(0, F_GETFL, 0);
-$.fcntl(0, F_SETFL, flags | O_NONBLOCK);
+// poll() (not variadic) so JXA's fixed-arity bindFunction marshals it
+// correctly on arm64 — unlike fcntl(F_SETFL, O_NONBLOCK), whose variadic
+// third arg is silently dropped on Apple Silicon, leaving stdin blocking.
+ObjC.bindFunction('poll', ['int', ['void*', 'unsigned int', 'int']]);
 
 const stdout = $.NSFileHandle.fileHandleWithStandardOutput;
 function writeLine(line) {
@@ -64,6 +63,12 @@ function handleCommand(json) {
 }
 
 const stdin = $.NSFileHandle.fileHandleWithStandardInput;
+// struct pollfd { int fd=0; short events=POLLIN(1); short revents=0; }, 8 bytes.
+// Gate availableData behind a zero-timeout poll so it only reads when data is
+// ready and never blocks the loop — otherwise the loop stalls after each
+// command and can't observe speech finishing, so DONE is never emitted.
+const pollfd = $.NSData.alloc.initWithBase64EncodedStringOptions('AAAAAAEAAAA=', 0).mutableCopy;
+const pollPtr = pollfd.mutableBytes;
 let buf = '';
 let wasSpeaking = false;
 
@@ -75,9 +80,8 @@ function decodeBase64(b64) {
 while (true) {
     $.NSThread.sleepForTimeInterval(0.05);
 
-    let data = null;
-    try { data = stdin.availableData; } catch (e) { /* nothing ready */ }
-    if (data && data.length) {
+    if ($.poll(pollPtr, 1, 0) > 0) {
+        const data = stdin.availableData;
         buf += $.NSString.alloc.initWithDataEncoding(data, $.NSUTF8StringEncoding).js;
         let idx;
         while ((idx = buf.indexOf('\n')) >= 0) {

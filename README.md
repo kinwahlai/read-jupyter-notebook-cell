@@ -69,7 +69,7 @@ Then either:
   ```bash
   pnpm add -D @vscode/vsce
   pnpm exec vsce package
-  code --install-extension read-jupyter-notebook-cell-0.0.2.vsix
+  code --install-extension read-jupyter-notebook-cell-0.0.3.vsix
   ```
 
   Then reload the window (`Cmd/Ctrl+Shift+P` → "Reload Window") to activate it.
