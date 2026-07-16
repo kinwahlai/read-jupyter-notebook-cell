@@ -45,6 +45,11 @@ the first are near-instant.
   macOS/Windows use a warm persistent process instead.
 - Only tested on macOS so far. The Windows (`media/tts-win.ps1`) and Linux (`espeak`)
   paths are implemented but unverified — please report issues if you try them.
+- Occasionally the click itself takes ~1s to reach the extension before it starts
+  reading. Confirmed via the "Read Jupyter Notebook Cell" output channel that this
+  happens *before* our command handler runs, so it isn't the TTS engine — likely
+  general VS Code/notebook UI responsiveness rather than something this extension
+  can fix.
 
 ## Installation
 
