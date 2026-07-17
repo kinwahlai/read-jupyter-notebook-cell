@@ -53,7 +53,7 @@ the first are near-instant.
 
 ## Installation
 
-This extension isn't published on the Marketplace yet. To try it from source:
+Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=ElevatesLife.read-jupyter-notebook-cell), or build from source:
 
 ```bash
 git clone git@github.com:kinwahlai/read-jupyter-notebook-cell.git

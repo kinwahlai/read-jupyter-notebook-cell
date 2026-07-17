@@ -4,6 +4,11 @@ All notable changes to the "read-jupyter-notebook-cell" extension will be docume
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
-## [Unreleased]
+## [0.0.3]
 
-- Initial release
+- Read/Stop button in cell toolbar + CodeLens shortcut, toggle playback.
+- Cross-platform TTS: macOS (NSSpeechSynthesizer), Windows (PowerShell System.Speech), Linux (espeak).
+- Warm persistent speech engine on macOS/Windows — fixes cold-start delay.
+- Strip markdown link URLs and bare URLs before speech.
+- Fix stuck `isSpeaking` state on arm64.
+- Fix silent TTS failures: spawn via stdin, surface spawn errors.
