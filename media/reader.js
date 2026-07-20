@@ -149,7 +149,11 @@
     const last = tnodes[tnodes.length - 1];
     const locateStart = (i) => { for (const t of tnodes) if (i < t.end) return [t.node, Math.max(0, i - t.start)]; return [last.node, last.node.nodeValue.length]; };
     const locateEnd = (i) => { for (const t of tnodes) if (i <= t.end) return [t.node, Math.max(0, i - t.start)]; return [last.node, last.node.nodeValue.length]; };
-    const segs = sentencesOf(text);
+    // Mid-paragraph newlines are just soft-wrapped whitespace (CommonMark), but
+    // Intl.Segmenter's sentence boundary rules treat "\n" as sentence-ending —
+    // normalize to spaces (same length, so tnode offsets stay valid) so manual
+    // line-wrapping in the source markdown doesn't fragment the highlight.
+    const segs = sentencesOf(text.replace(/[\r\n\t]/g, ' '));
     const spans = [];
     for (const s of segs) {
       const range = document.createRange();
