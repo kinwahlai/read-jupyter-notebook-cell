@@ -7,13 +7,16 @@ Built for anyone who has a hard time focusing on long blocks of text on screen, 
 ## Features
 
 - **▶ Read Cell button** in the notebook cell toolbar — click to open a reading panel
-  beside the notebook, rendering the cell as clean prose (or, for code cells, a
-  syntax-highlighted block) and reading it aloud.
+  beside the notebook, rendering the cell as clean prose and reading it aloud.
+  Code cells (and fenced code blocks) are shown as a syntax-highlighted block but
+  are not read aloud — playback skips them and continues at the next sentence.
 - **Sentence-by-sentence highlighting** — the sentence currently being spoken is
   highlighted in the panel and auto-scrolled into view as playback advances.
-- **Reading panel controls** — Play/Pause, speed slider, Follow (auto-scroll),
-  Focus (dim non-active sentences), and Glow (ambient highlight) toggles. Click any
-  sentence to jump playback there.
+- **Reading panel controls** — Play/Pause, speed presets (0.5×–2×) with a slider
+  and live value label, Follow (auto-scroll), Focus (dim non-active sentences),
+  and Glow (ambient highlight) toggles. Click any sentence to jump playback there.
+  Changing speed in the panel updates your `readJupyterNotebookCell.rate` setting,
+  so it becomes the default for future reads.
 - **CodeLens shortcut** above each cell as an alternative trigger.
 - **Cross-platform TTS**, using each OS's native voice:
   - macOS: `NSSpeechSynthesizer` (same voices as `say`), driven via a persistent helper process
@@ -48,6 +51,9 @@ the first are near-instant.
 - Linux requires `espeak` to be installed separately; it isn't bundled with the extension.
 - No language control — playback uses the OS default voice's language.
 - The reading panel shows one cell at a time; reading a new cell replaces its content.
+- Changing speed mid-playback takes effect on the next sentence, not the one
+  currently speaking — each sentence is a one-shot command to the OS TTS engine,
+  not a live player whose rate can be adjusted mid-utterance.
 - Linux still spawns a fresh `espeak` process per click (lightweight, no noticeable delay);
   macOS/Windows use a warm persistent process instead.
 - Only tested on macOS so far. The Windows (`media/tts-win.ps1`) and Linux (`espeak`)
@@ -74,10 +80,13 @@ Then either:
 - Install it into your regular VS Code as a `.vsix`:
 
   ```bash
-  pnpm add -D @vscode/vsce
-  pnpm exec vsce package
+  pnpm run package
   code --install-extension read-jupyter-notebook-cell-0.0.4.vsix
   ```
+
+  (`pnpm run package` temporarily reinstalls with a hoisted `node_modules` layout so
+  `vsce`'s dependency detection — which shells out to `npm list` — can read it, then
+  restores pnpm's normal layout afterward.)
 
   Then reload the window (`Cmd/Ctrl+Shift+P` → "Reload Window") to activate it.
 

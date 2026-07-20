@@ -63,7 +63,8 @@
     "watch": "tsc -watch -p ./",
     "pretest": "pnpm run compile && pnpm run lint",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "package": "pnpm install --node-linker=hoisted && vsce package && pnpm install"
   },
   "dependencies": {
     "markdown-it": "^14.3.0"

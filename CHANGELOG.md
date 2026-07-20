@@ -7,9 +7,16 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [0.0.4]
 
 - Reading panel: ▶ Read Cell now opens a webview beside the notebook that renders
-  the cell (markdown as prose, code as a highlighted block) and reads it aloud.
+  the cell as prose and reads it aloud, highlighting each sentence as it's spoken.
+- Code cells (and fenced code blocks) are shown as a syntax-highlighted block but
+  are not read aloud — playback skips them and continues at the next sentence.
 - Sentence-by-sentence highlighting synced to playback, with auto-scroll.
-- Panel controls: Play/Pause, speed, Follow/Focus/Glow toggles, click-to-jump.
+- Panel controls: Play/Pause, speed presets + slider with a live value label,
+  Follow/Focus/Glow toggles, click-to-jump.
+- Changing speed in the panel persists it to `readJupyterNotebookCell.rate`.
+- Fix: manually line-wrapped prose in the source markdown no longer fragments
+  the sentence highlight (`Intl.Segmenter` was treating soft-wrap newlines as
+  sentence boundaries).
 
 ## [0.0.3]
 

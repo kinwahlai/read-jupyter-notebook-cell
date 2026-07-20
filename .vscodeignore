@@ -1,8 +1,12 @@
 .vscode/**
 .vscode-test/**
+.claude/**
 src/**
+out/test/**
 .gitignore
+.npmrc
 .yarnrc
+pnpm-lock.yaml
 vsc-extension-quickstart.md
 **/tsconfig.json
 **/eslint.config.mjs
