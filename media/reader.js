@@ -9,24 +9,60 @@
 
   const ICON_PLAY = '<svg viewBox="0 0 12 12" fill="currentColor"><path d="M2 1l8 5-8 5z"/></svg>';
   const ICON_PAUSE = '<svg viewBox="0 0 12 12" fill="currentColor"><path d="M2 1h3v10H2zM7 1h3v10H7z"/></svg>';
+  const SPEED_PRESETS = [0.5, 0.75, 1, 1.25, 1.5, 2];
+
+  function fmtRate(r) {
+    return (Math.round(r * 100) / 100).toFixed(2).replace(/(\.\d)0$/, '$1') + '×';
+  }
 
   /* ---------------- chrome ---------------- */
   function buildChrome() {
     $('app').innerHTML = `
       <header id="bar">
-        <button class="btn play" id="play" aria-label="Play" title="Play (Space)">${ICON_PLAY}</button>
-        <span class="pos" id="pos"></span>
-        <span class="spacer"></span>
-        <button class="ctl" id="follow" aria-pressed="true">Follow</button>
-        <button class="ctl" id="focus" aria-pressed="false">Focus</button>
-        <button class="ctl" id="ambient" aria-pressed="false">Glow</button>
-        <label class="rate">Speed <input type="range" id="rate" min="0.5" max="2" step="0.1" value="1"></label>
+        <div class="bar-row">
+          <button class="btn play" id="play" aria-label="Play" title="Play (Space)">${ICON_PLAY}</button>
+          <span class="pos" id="pos"></span>
+          <span class="spacer"></span>
+          <button class="ctl" id="follow" aria-pressed="true">Follow</button>
+          <button class="ctl" id="focus" aria-pressed="false">Focus</button>
+          <button class="ctl" id="ambient" aria-pressed="false">Glow</button>
+        </div>
+        <div class="speed-row">
+          <div class="speed-presets" id="speed-presets">
+            ${SPEED_PRESETS.map((p) => `<button data-rate="${p}">${fmtRate(p)}</button>`).join('')}
+          </div>
+          <div class="speed-slider">
+            <input type="range" id="rate" min="0.5" max="2" step="0.05" value="1" aria-label="Speed">
+            <span class="rate-val" id="ratev">1.0×</span>
+          </div>
+        </div>
       </header>
       <div id="reader-wrap">
         <div id="empty-note">Nothing to read in this cell.</div>
         <div id="doc"></div>
       </div>`;
     bindChrome();
+  }
+
+  function applyRate() {
+    const r = $('rate'); if (r) r.value = String(state.rate);
+    const rv = $('ratev'); if (rv) rv.textContent = fmtRate(state.rate);
+    document.querySelectorAll('#speed-presets button').forEach((b) => {
+      b.classList.toggle('sel-on', Math.abs(parseFloat(b.dataset.rate) - state.rate) < 0.001);
+    });
+  }
+
+  // Rate only takes effect on the NEXT sentence — each sentence is a one-shot
+  // "speak this text at this rate" command to the OS TTS helper, not a live
+  // player whose rate can be nudged mid-utterance.
+  let persistTimer = 0;
+  function setRate(r, persist) {
+    state.rate = Math.min(2, Math.max(0.5, Math.round(r * 100) / 100));
+    applyRate();
+    if (persist) {
+      clearTimeout(persistTimer);
+      persistTimer = setTimeout(() => vscode.postMessage({ type: 'persistRate', rate: state.rate }), 400);
+    }
   }
 
   function bindChrome() {
@@ -47,8 +83,9 @@
       const on = document.body.classList.toggle('ambient');
       $('ambient').setAttribute('aria-pressed', String(on));
     });
-    $('rate').addEventListener('input', (e) => {
-      state.rate = parseFloat(e.target.value) || 1;
+    $('rate').addEventListener('input', (e) => setRate(parseFloat(e.target.value), true));
+    document.querySelectorAll('#speed-presets button').forEach((b) => {
+      b.addEventListener('click', () => setRate(parseFloat(b.dataset.rate), true));
     });
     document.addEventListener('keydown', (e) => {
       if (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
@@ -70,12 +107,15 @@
 
   function buildSegments(root) {
     SEG_SEQ = 0; SEGMENTS = [];
-    root.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6, blockquote, pre').forEach((block) => {
-      if (block.tagName === 'PRE') { handlePre(block); return; }
+    // Code blocks are shown but not read: skip them, playback continues at the next sentence.
+    root.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6, blockquote').forEach((block) => {
       if (block.closest('pre')) return;
       wrapBlock(block);
     });
-    document.body.classList.toggle('empty', SEGMENTS.length === 0);
+    // "empty" hides #doc entirely, so it must reflect whether there's anything to SHOW
+    // (root has content at all), not just whether there's anything to SPEAK (SEGMENTS) —
+    // a code-only cell has no segments but still has a code block to display.
+    document.body.classList.toggle('empty', !root.textContent || !root.textContent.trim());
   }
 
   function wrapBlock(block) {
@@ -128,23 +168,6 @@
     const anchor = nodes[0];
     for (const sp of spans) parent.insertBefore(sp, anchor);
     for (const n of nodes) n.remove();
-  }
-
-  // Code blocks: chunk into line groups so each spoken segment stays short,
-  // highlighting the whole <pre> for every chunk it owns.
-  function handlePre(pre) {
-    const lines = pre.textContent.split('\n');
-    let buf = '';
-    const flush = () => {
-      const t = buf.replace(/\s+/g, ' ').trim();
-      if (t) SEGMENTS.push({ id: SEG_SEQ++, el: pre, text: t });
-      buf = '';
-    };
-    for (const ln of lines) {
-      buf += ln + '\n';
-      if (buf.length > 240) flush();
-    }
-    flush();
   }
 
   /* ---------------- playback ---------------- */
@@ -224,9 +247,7 @@
   window.addEventListener('message', (e) => {
     const m = e.data;
     if (m.type === 'render') {
-      state.rate = m.rate || 1;
-      const rateInput = $('rate');
-      if (rateInput) rateInput.value = String(state.rate);
+      setRate(m.rate || 1, false);
       $('doc').innerHTML = m.html;
       buildSegments($('doc'));
       state.idx = -1;

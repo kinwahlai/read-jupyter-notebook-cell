@@ -80,6 +80,10 @@ export class ReadingPanel {
         if (m.type === 'speak') { this.onSpeak?.(String(m.text ?? ''), Number(m.rate) || 1); }
         else if (m.type === 'stop') { this.onStop?.(); }
         else if (m.type === 'ready' && this.lastRender) { this.post({ type: 'render', ...this.lastRender }); }
+        else if (m.type === 'persistRate') {
+            void vscode.workspace.getConfiguration('readJupyterNotebookCell')
+                .update('rate', Number(m.rate) || 1, vscode.ConfigurationTarget.Global);
+        }
     }
 
     private getHtml(webview: vscode.Webview): string {
