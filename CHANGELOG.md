@@ -4,6 +4,13 @@ All notable changes to the "read-jupyter-notebook-cell" extension will be docume
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.0.4]
+
+- Reading panel: ▶ Read Cell now opens a webview beside the notebook that renders
+  the cell (markdown as prose, code as a highlighted block) and reads it aloud.
+- Sentence-by-sentence highlighting synced to playback, with auto-scroll.
+- Panel controls: Play/Pause, speed, Follow/Focus/Glow toggles, click-to-jump.
+
 ## [0.0.3]
 
 - Read/Stop button in cell toolbar + CodeLens shortcut, toggle playback.

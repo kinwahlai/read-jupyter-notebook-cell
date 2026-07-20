@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { spawn, ChildProcess } from 'child_process';
+import { ReadingPanel } from './readingPanel';
 
 // macOS/Windows: one persistent helper process holding a warm speech engine
 // (see media/tts-mac.js and media/tts-win.ps1). Paying the engine's ~1s
@@ -23,16 +24,6 @@ let log: vscode.OutputChannel;
 
 function logLine(msg: string) {
     log.appendLine(`[${new Date().toISOString()}] ${msg}`);
-}
-
-// Strip content that isn't meaningful to speak aloud: fenced code blocks,
-// markdown images, link URLs (keep only the link text), and bare URLs.
-function stripUnspeakable(text: string): string {
-    return text
-        .replace(/```[\s\S]*?```/g, '')
-        .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
-        .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-        .replace(/https?:\/\/\S+/g, '');
 }
 
 function getTtsConfig(): { voice: string; rate: number } {
@@ -70,6 +61,7 @@ function ensureHelper(context: vscode.ExtensionContext): ChildProcess {
             logLine(`helper stdout: ${line}`);
             if (line === 'DONE') {
                 isSpeaking = false;
+                ReadingPanel.notifySpoken();
             } else if (line === 'READY') {
                 helperReady = true;
                 if (pendingCommand) {
@@ -117,7 +109,7 @@ function sendHelperCommand(context: vscode.ExtensionContext, cmd: Record<string,
     proc.stdin?.write(Buffer.from(JSON.stringify(cmd)).toString('base64') + '\n');
 }
 
-function speak(context: vscode.ExtensionContext, text: string) {
+function speak(context: vscode.ExtensionContext, text: string, rateOverride?: number) {
     if (process.platform === 'linux') {
         // Linux: requires espeak to be installed
         const proc = spawn('espeak');
@@ -134,12 +126,13 @@ function speak(context: vscode.ExtensionContext, text: string) {
         proc.on('exit', () => {
             linuxProcess = null;
             isSpeaking = false;
+            ReadingPanel.notifySpoken();
         });
         return;
     }
 
     const { voice, rate } = getTtsConfig();
-    sendHelperCommand(context, { type: 'speak', text, voice, rate });
+    sendHelperCommand(context, { type: 'speak', text, voice, rate: rateOverride ?? rate });
     isSpeaking = true;
 }
 
@@ -190,29 +183,33 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('extension.readNotebookCell', (...args) => {
             logLine(`click received (isSpeaking=${isSpeaking}, helperReady=${helperReady})`);
 
-            if (isSpeaking) {
-                stop();
-                return;
-            }
-
             let textToRead = "";
+            let kind: vscode.NotebookCellKind = vscode.NotebookCellKind.Markup;
             const arg = args[0];
 
             if (!arg) { return; }
 
             if (arg.getText) {
                 textToRead = arg.getText();
+                kind = arg.languageId === 'markdown' ? vscode.NotebookCellKind.Markup : vscode.NotebookCellKind.Code;
             } else if (arg.document && arg.document.getText) {
                 textToRead = arg.document.getText();
+                kind = arg.kind ?? vscode.NotebookCellKind.Markup;
             } else if (arg.cell && arg.cell.document && arg.cell.document.getText) {
                 textToRead = arg.cell.document.getText();
+                kind = arg.cell.kind ?? vscode.NotebookCellKind.Markup;
             }
-
-            textToRead = stripUnspeakable(textToRead);
 
             if (!textToRead || !textToRead.trim()) { return; }
 
-            speak(context, textToRead);
+            if (isSpeaking) { stop(); }
+
+            const panel = ReadingPanel.createOrShow(context);
+            panel.setHandlers(
+                (text, rate) => speak(context, text, rate),
+                () => stop()
+            );
+            panel.render(textToRead, kind, getTtsConfig().rate);
         })
     );
 }
@@ -220,4 +217,5 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {
     helper?.kill();
     linuxProcess?.kill();
+    ReadingPanel.disposeCurrent();
 }
