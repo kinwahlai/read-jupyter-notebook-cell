@@ -4,6 +4,15 @@ All notable changes to the "read-jupyter-notebook-cell" extension will be docume
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.0.5]
+
+- LaTeX math (`$...$` and `$$...$$`) now renders via KaTeX instead of showing
+  the raw delimiters/backslashes as literal text.
+- Speech reads the stripped LaTeX source for math (e.g. `$L_\infty$` is spoken
+  as "L_infty"), not KaTeX's rendered glyph text.
+- Table rows are now read aloud, one row per utterance, as "Header: cell.
+  Header: cell." — previously tables were shown but silently skipped.
+
 ## [0.0.4]
 
 - Reading panel: ▶ Read Cell now opens a webview beside the notebook that renders
