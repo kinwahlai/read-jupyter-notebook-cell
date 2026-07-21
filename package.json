@@ -67,6 +67,8 @@
     "package": "pnpm install --node-linker=hoisted && vsce package && pnpm install"
   },
   "dependencies": {
+    "@traptitech/markdown-it-katex": "^3.6.0",
+    "katex": "^0.16.0",
     "markdown-it": "^14.3.0"
   },
   "devDependencies": {

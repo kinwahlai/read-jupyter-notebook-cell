@@ -130,10 +130,36 @@
     for (const r of runs) segmentRun(r);
   }
 
+  // KaTeX-rendered math (see readingPanel.ts) drops LaTeX punctuation from its
+  // visible text, so TTS would mangle it. Each math span/div carries a
+  // data-tts attribute with the spoken form; group the text nodes under it
+  // into one substitution run so it's spoken once, verbatim, per math token.
+  function mathRunFor(mathRuns, mathRunByEl, textNode, start, end) {
+    const mathEl = textNode.parentElement && textNode.parentElement.closest('[data-tts]');
+    if (!mathEl) return;
+    let run = mathRunByEl.get(mathEl);
+    if (!run) { run = { start, end, value: mathEl.dataset.tts }; mathRunByEl.set(mathEl, run); mathRuns.push(run); }
+    else { run.end = end; }
+  }
+
+  function sliceWithMath(text, mathRuns, from, to) {
+    let out = '';
+    let i = from;
+    for (const r of mathRuns) {
+      if (r.end <= from || r.start >= to) continue;
+      const s = Math.max(r.start, from), e = Math.min(r.end, to);
+      out += text.slice(i, s) + r.value;
+      i = e;
+    }
+    return out + text.slice(i, to);
+  }
+
   function segmentRun(nodes) {
     const text = nodes.map((n) => n.textContent).join('');
     if (!text.trim()) return;
     const tnodes = [];
+    const mathRuns = [];
+    const mathRunByEl = new Map();
     let off = 0;
     for (const n of nodes) {
       if (n.nodeType === 3) {
@@ -142,7 +168,12 @@
       } else if (n.nodeType === 1) {
         const w = document.createTreeWalker(n, NodeFilter.SHOW_TEXT);
         let t;
-        while ((t = w.nextNode())) { tnodes.push({ node: t, start: off, end: off + t.nodeValue.length }); off += t.nodeValue.length; }
+        while ((t = w.nextNode())) {
+          const start = off, end = off + t.nodeValue.length;
+          tnodes.push({ node: t, start, end });
+          mathRunFor(mathRuns, mathRunByEl, t, start, end);
+          off = end;
+        }
       }
     }
     if (!tnodes.length) return;
@@ -163,7 +194,8 @@
       const span = document.createElement('span');
       span.className = 'seg'; span.dataset.seg = String(SEG_SEQ);
       span.appendChild(range.cloneContents());
-      const tts = s.segment.replace(/\s+/g, ' ').trim();
+      const spoken = sliceWithMath(text, mathRuns, s.index, s.index + s.segment.length);
+      const tts = spoken.replace(/\s+/g, ' ').trim();
       if (tts) { span.tabIndex = -1; SEGMENTS.push({ id: SEG_SEQ, el: span, text: tts }); }
       SEG_SEQ++;
       spans.push(span);
