@@ -312,7 +312,6 @@
       state.idx = -1;
       clearHL();
       updateStatus();
-      if (SEGMENTS.length) doPlay();
     } else if (m.type === 'spoken') {
       if (state.playing) playAt(state.idx + 1);
     }

@@ -4,6 +4,10 @@ All notable changes to the "read-jupyter-notebook-cell" extension will be docume
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.0.6]
+
+- Opening the reading panel no longer auto-starts playback — press Play to begin.
+
 ## [0.0.5]
 
 - LaTeX math (`$...$` and `$$...$$`) now renders via KaTeX instead of showing
