@@ -107,15 +107,38 @@
 
   function buildSegments(root) {
     SEG_SEQ = 0; SEGMENTS = [];
+    // Combined selector keeps table rows in document order alongside prose blocks —
+    // querying separately would append all table segments after all paragraph segments.
     // Code blocks are shown but not read: skip them, playback continues at the next sentence.
-    root.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6, blockquote').forEach((block) => {
+    root.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6, blockquote, tr').forEach((block) => {
       if (block.closest('pre')) return;
+      if (block.tagName === 'TR') { if (!block.closest('thead')) wrapTableRow(block); return; }
+      if (block.closest('table')) return;
       wrapBlock(block);
     });
     // "empty" hides #doc entirely, so it must reflect whether there's anything to SHOW
     // (root has content at all), not just whether there's anything to SPEAK (SEGMENTS) —
     // a code-only cell has no segments but still has a code block to display.
     document.body.classList.toggle('empty', !root.textContent || !root.textContent.trim());
+  }
+
+  // A row is read as "Header: cell. Header: cell." rather than run through
+  // sentence-splitting like prose — cells have no inter-cell punctuation to
+  // split on, so the whole row is one atomic spoken/highlighted unit.
+  function wrapTableRow(tr) {
+    if (!tr.textContent.trim()) return;
+    const table = tr.closest('table');
+    const headers = table ? [...table.querySelectorAll('thead th')].map((th) => th.textContent.trim()) : [];
+    const spoken = [...tr.children]
+      .map((td, i) => (headers[i] ? `${headers[i]}: ${td.textContent.trim()}` : td.textContent.trim()))
+      .filter(Boolean)
+      .join('. ');
+    if (!spoken) return;
+    tr.classList.add('seg');
+    tr.tabIndex = -1;
+    tr.dataset.seg = String(SEG_SEQ);
+    SEGMENTS.push({ id: SEG_SEQ, el: tr, text: spoken });
+    SEG_SEQ++;
   }
 
   function wrapBlock(block) {
